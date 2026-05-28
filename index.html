@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Resume Analyzer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #080810;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .wrapper {
+            width: 100%;
+            max-width: 860px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #6366f115;
+            border: 1px solid #6366f133;
+            color: #818cf8;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 16px;
+        }
+
+        .badge .dot {
+            width: 6px;
+            height: 6px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        h1 {
+            font-size: 42px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 12px;
+        }
+
+        h1 span {
+            background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: #555;
+            font-size: 15px;
+        }
+
+        .card {
+            background: #0f0f1a;
+            border: 1px solid #1e1e35;
+            border-radius: 20px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 13px;
+            color: #6366f1;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title::before {
+            content: '';
+            width: 3px;
+            height: 14px;
+            background: #6366f1;
+            border-radius: 2px;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input, textarea, select {
+            background: #13131f;
+            border: 1px solid #1e1e35;
+            border-radius: 12px;
+            color: #e2e8f0;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        input { padding: 13px 16px; }
+        select { padding: 13px 16px; cursor: pointer; }
+
+        input:focus, textarea:focus, select:focus {
+            border-color: #6366f1;
+            background: #15152a;
+            box-shadow: 0 0 0 3px #6366f115;
+        }
+
+        input::placeholder, textarea::placeholder { color: #333; }
+
+        textarea {
+            padding: 16px;
+            height: 200px;
+            resize: vertical;
+            line-height: 1.7;
+            width: 100%;
+        }
+
+        .analyze-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .analyze-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, #ffffff15, transparent);
+            transition: left 0.4s;
+        }
+
+        .analyze-btn:hover::before { left: 100%; }
+        .analyze-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px #6366f140; }
+        .analyze-btn:active { transform: translateY(0); }
+        .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 48px;
+        }
+
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 3px solid #1e1e35;
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading p { color: #555; font-size: 14px; }
+
+        .result {
+            display: none;
+            animation: fadeUp 0.5s ease;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .score-section {
+            background: linear-gradient(135deg, #6366f108, #a855f708);
+            border: 1px solid #6366f122;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .score-label { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+
+        .score-number {
+            font-size: 56px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1;
+        }
+
+        .score-sub { font-size: 13px; color: #444; margin-top: 6px; }
+
+        .sections {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .section-card {
+            background: #0f0f1a;
+            border: 1px solid #1e1e35;
+            border-radius: 14px;
+            padding: 20px;
+        }
+
+        .section-card h3 {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-card.strengths h3 { color: #22c55e; }
+        .section-card.weaknesses h3 { color: #f59e0b; }
+        .section-card.improvements h3 { color: #6366f1; }
+        .section-card.full { grid-column: 1 / -1; }
+
+        .section-card p {
+            font-size: 13px;
+            color: #888;
+            line-height: 1.8;
+            white-space: pre-wrap;
+        }
+
+        select option { background: #13131f; }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="header">
+            <div class="badge">
+                <span class="dot"></span>
+                AI Powered
+            </div>
+            <h1>Analyze Your <span>Resume</span></h1>
+            <p>Get instant AI feedback tailored to your target role</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Job Details</div>
+            <div class="row">
+                <div class="field">
+                    <label>Target Role</label>
+                    <input type="text" id="job-role" placeholder="e.g. AI Engineer"/>
+                </div>
+                <div class="field">
+                    <label>Experience Level</label>
+                    <select id="exp-level">
+                        <option value="fresher">Fresher</option>
+                        <option value="1-2 years">1-2 Years</option>
+                        <option value="3-5 years">3-5 Years</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Your Resume</div>
+            <textarea id="resume-text" placeholder="Paste your full resume text here..."></textarea>
+        </div>
+
+        <button class="analyze-btn" onclick="analyzeResume()" id="analyze-btn">
+            ✦ Analyze My Resume
+        </button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing your resume with AI...</p>
+        </div>
+
+        <div class="result" id="result">
+            <div class="score-section">
+                <div class="score-label">Resume Score</div>
+                <div class="score-number" id="score-display">—</div>
+                <div class="score-sub">out of 10</div>
+            </div>
+
+            <div class="sections">
+                <div class="section-card strengths">
+                    <h3>✦ Strengths</h3>
+                    <p id="strengths-text"></p>
+                </div>
+                <div class="section-card weaknesses">
+                    <h3>⚠ Weaknesses</h3>
+                    <p id="weaknesses-text"></p>
+                </div>
+                <div class="section-card improvements full">
+                    <h3>→ Improvements</h3>
+                    <p id="improvements-text"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function analyzeResume() {
+            const resume = document.getElementById("resume-text").value.trim();
+            const role = document.getElementById("job-role").value.trim();
+            const level = document.getElementById("exp-level").value;
+
+            if (!resume) { alert("Please paste your resume!"); return; }
+            if (!role) { alert("Please enter a target role!"); return; }
+
+            document.getElementById("analyze-btn").disabled = true;
+            document.getElementById("loading").style.display = "block";
+            document.getElementById("result").style.display = "none";
+
+            try {
+                const response = await fetch("/analyze", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ resume, role, level })
+                });
+
+                const data = await response.json();
+                parseAndDisplay(data.analysis);
+                document.getElementById("result").style.display = "block";
+            } catch {
+                alert("Something went wrong. Try again.");
+            } finally {
+                document.getElementById("loading").style.display = "none";
+                document.getElementById("analyze-btn").disabled = false;
+            }
+        }
+
+        function parseAndDisplay(text) {
+            const scoreMatch = text.match(/(\d+(\.\d+)?)\s*\/\s*10/);
+            if (scoreMatch) {
+                document.getElementById("score-display").textContent = scoreMatch[1];
+            }
+
+            const sections = {
+                strengths: extractSection(text, "STRENGTHS"),
+                weaknesses: extractSection(text, "WEAKNESSES"),
+                improvements: extractSection(text, "IMPROVEMENTS")
+            };
+
+            document.getElementById("strengths-text").textContent = sections.strengths || "See full analysis below.";
+            document.getElementById("weaknesses-text").textContent = sections.weaknesses || "See full analysis below.";
+            document.getElementById("improvements-text").textContent = sections.improvements || text;
+        }
+
+        function extractSection(text, section) {
+            const regex = new RegExp(section + "[:\\s\\-]*(.*?)(?=\\n[A-Z]{3,}|$)", "si");
+            const match = text.match(regex);
+            return match ? match[1].trim() : null;
+        }
+    </script>
+</body>
+</html>
